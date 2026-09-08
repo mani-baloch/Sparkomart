@@ -7,9 +7,19 @@ import { ProductSection } from "@/components/home/ProductSection";
 import { BenefitsSection } from "@/components/home/BenefitsSection";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
 import { Footer } from "@/components/layout/Footer";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/services/products";
+import { getCategories } from "@/lib/services/categories";
 
-export default function Home() {
+export default async function Home() {
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
+
+  const topRatedProducts = [...products]
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 4);
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Fixed Top Header System (Announcement Bar + Blurry Navbar) */}
@@ -23,14 +33,14 @@ export default function Home() {
         <Hero />
 
         {/* 4. Shop by Category Section */}
-        <CategorySection />
+        <CategorySection categories={categories} />
 
         {/* 5. Top Rated Products */}
         <ProductSection
           id="top-rated"
           title="Top Rated Products"
           subtitle="Highly rated items across all categories with excellent customer reviews"
-          products={products}
+          products={topRatedProducts}
         />
 
         {/* 6. Featured Products */}

@@ -116,6 +116,12 @@ export function Navbar() {
           >
             Contact
           </Link>
+          <Link
+            href="/admin"
+            className="text-xs font-bold px-2.5 py-1 rounded-lg bg-orange-50 text-[#F26E22] hover:bg-orange-100 transition-colors"
+          >
+            Admin Panel
+          </Link>
         </nav>
 
         {/* Center/Right: Search Bar */}
@@ -264,6 +270,16 @@ export function Navbar() {
               className="px-2 py-1.5 rounded-lg hover:bg-gray-50 hover:text-[#F2B52B]"
             >
               Contact
+            </Link>
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-2 py-1.5 rounded-lg font-bold text-[#F26E22] hover:bg-orange-50 flex items-center justify-between"
+            >
+              <span>Admin Panel</span>
+              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-orange-100">
+                Dashboard
+              </span>
             </Link>
           </nav>
         </div>
