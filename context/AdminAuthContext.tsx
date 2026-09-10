@@ -97,7 +97,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     if (!client) {
       return {
         success: false,
-        error: "Supabase authentication is not configured in .env.local.",
+        error: "Supabase authentication is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.",
       };
     }
 
