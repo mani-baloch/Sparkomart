@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { CartDrawer } from "@/components/layout/CartDrawer";
 import { CartNotification } from "@/components/ui/CartNotification";
 
@@ -45,13 +46,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} antialiased`}>
       <body className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
-        <CartProvider>
-          <WishlistProvider>
-            {children}
-            <CartDrawer />
-            <CartNotification />
-          </WishlistProvider>
-        </CartProvider>
+        <CustomerAuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              {children}
+              <CartDrawer />
+              <CartNotification />
+            </WishlistProvider>
+          </CartProvider>
+        </CustomerAuthProvider>
       </body>
     </html>
   );

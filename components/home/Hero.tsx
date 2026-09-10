@@ -26,13 +26,13 @@ export function Hero() {
 
             <div className="flex flex-wrap items-center gap-4">
               <Link
-                href="#categories"
+                href="/shop"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#F2B52B] hover:bg-[#E0A41D] text-white font-semibold text-sm rounded-lg shadow-sm transition-colors duration-200"
               >
-                Shop All Categories &rarr;
+                Shop Now &rarr;
               </Link>
               <Link
-                href="#categories"
+                href="/categories"
                 className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-gray-50 text-gray-800 font-medium text-sm rounded-lg border border-gray-300 transition-colors duration-200"
               >
                 Browse Categories

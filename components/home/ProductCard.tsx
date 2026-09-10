@@ -2,10 +2,11 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { Star, Check, Heart, ShoppingBag } from "lucide-react";
+import { Star, Check, Heart, ShoppingBag, ShoppingCart } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -18,30 +19,42 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="group bg-white rounded-2xl p-3 sm:p-3.5 border border-gray-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full relative">
-      {/* Top Image Container */}
+      {/* Top Image Container with Link */}
       <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-50 mb-3">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-        />
+        <Link
+          href={`/product/${product.id}`}
+          className="block w-full h-full relative"
+        >
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          />
+        </Link>
 
         {/* Sale Badge */}
         {product.badge && (
-          <div className="absolute top-2.5 left-2.5 bg-[#DC2626] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+          <div className="absolute top-2.5 left-2.5 bg-[#DC2626] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs pointer-events-none">
             {product.badge}
           </div>
         )}
 
         {/* Wishlist Button (Reveals on Hover) */}
         <button
+          type="button"
           onClick={(e) => {
             e.preventDefault();
-            toggleWishlist(product.id, product.name);
+            e.stopPropagation();
+            toggleWishlist(product.id, product.name, {
+              price: product.price,
+              image: product.image,
+              category: product.category,
+              inStock: product.inStock,
+            });
           }}
-          className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs transition-all duration-200 opacity-0 group-hover:opacity-100 ${
+          className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 ${
             isWishlisted
               ? "text-red-500 opacity-100"
               : "text-gray-400 hover:text-gray-800"
@@ -55,21 +68,24 @@ export function ProductCard({ product }: ProductCardProps) {
         </button>
 
         {/* Quick Add Overlay on Hover */}
-        <div className="absolute inset-x-2.5 bottom-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute inset-x-2.5 bottom-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
           <button
-            onClick={() =>
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               addToCart({
                 id: product.id,
                 name: product.name,
                 price: product.price,
                 image: product.image,
                 category: product.category,
-              })
-            }
-            className="w-full py-2 bg-gray-950/90 backdrop-blur-xs text-white text-xs font-semibold rounded-lg hover:bg-[#F2B52B] hover:text-gray-950 transition-colors flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+              });
+            }}
+            className="w-full py-2 bg-white/95 backdrop-blur-xs border border-gray-200/80 text-gray-950 text-xs font-semibold rounded-xl hover:bg-[#F2B52B] hover:border-[#F2B52B] hover:text-gray-950 transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Add to Cart</span>
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>Quick Add</span>
           </button>
         </div>
       </div>
@@ -84,10 +100,12 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           </div>
 
-          {/* Product Title */}
-          <h3 className="text-sm sm:text-[15px] font-bold text-gray-900 leading-tight mb-2 group-hover:text-[#F2B52B] transition-colors line-clamp-1">
-            {product.name}
-          </h3>
+          {/* Product Title Link */}
+          <Link href={`/product/${product.id}`} className="block">
+            <h3 className="text-sm sm:text-[15px] font-bold text-gray-900 leading-tight mb-2 hover:text-[#F2B52B] transition-colors line-clamp-1">
+              {product.name}
+            </h3>
+          </Link>
 
           {/* Rating */}
           <div className="flex items-center gap-1 mb-2.5 text-xs">

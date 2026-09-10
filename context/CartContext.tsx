@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 export interface CartItem {
   id: string;
@@ -24,6 +24,8 @@ interface CartContextType {
   notification: string | null;
 }
 
+const STORAGE_KEY = "sparkomart_cart";
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -31,22 +33,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  const addToCart = (product: { id: string; name: string; price: number; image: string; category: string }) => {
-    setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+  // Restore cart on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setItems(JSON.parse(saved));
       }
-      return [...prev, { ...product, quantity: 1 }];
-    });
+    } catch (e) {
+      console.warn("Could not load cart from localStorage:", e);
+    }
+  }, []);
+
+  const saveCart = (newItems: CartItem[]) => {
+    setItems(newItems);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
+    } catch (e) {
+      console.warn("Could not save cart to localStorage:", e);
+    }
+  };
+
+  const addToCart = (product: { id: string; name: string; price: number; image: string; category: string }) => {
+    const existing = items.find((item) => item.id === product.id);
+    let newItems: CartItem[];
+    if (existing) {
+      newItems = items.map((item) =>
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      );
+    } else {
+      newItems = [...items, { ...product, quantity: 1 }];
+    }
+    saveCart(newItems);
     setNotification(`Added "${product.name}" to cart`);
     setTimeout(() => setNotification(null), 3000);
   };
 
   const removeFromCart = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    saveCart(items.filter((item) => item.id !== id));
   };
 
   const updateQuantity = (id: string, qty: number) => {
@@ -54,13 +78,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(id);
       return;
     }
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity: qty } : item))
-    );
+    saveCart(items.map((item) => (item.id === id ? { ...item, quantity: qty } : item)));
   };
 
   const clearCart = () => {
-    setItems([]);
+    saveCart([]);
   };
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);

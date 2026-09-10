@@ -19,14 +19,29 @@ export async function getCategories(): Promise<Category[]> {
       return fallbackCategories;
     }
 
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      image: item.image || "/images/home-kitchen.jpg",
-      cta: item.cta || "Shop Now →",
-      href: item.href || `#${item.id}`,
-    }));
+    const dbCategories: Category[] = data.map((item) => {
+      const validHref =
+        item.href && !item.href.startsWith("#")
+          ? item.href
+          : `/category/${item.id}`;
+
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description || "",
+        image: item.image || "/images/home-kitchen.jpg",
+        cta: item.cta || "Shop Now →",
+        href: validHref,
+      };
+    });
+
+    // Merge with fallback categories to ensure default categories are always available
+    const existingIds = new Set(dbCategories.map((c) => c.id.toLowerCase()));
+    const missingFallbacks = fallbackCategories.filter(
+      (fb) => !existingIds.has(fb.id.toLowerCase())
+    );
+
+    return [...dbCategories, ...missingFallbacks];
   } catch (err) {
     console.warn("Failed to fetch categories from Supabase, using fallback:", err);
     return fallbackCategories;
@@ -53,6 +68,11 @@ export async function createCategory(category: {
 
   const slug = category.id.trim().toLowerCase().replace(/\s+/g, "-");
 
+  const targetHref =
+    category.href && !category.href.startsWith("#")
+      ? category.href
+      : `/category/${slug}`;
+
   const { data, error } = await supabase
     .from("categories")
     .insert({
@@ -61,7 +81,7 @@ export async function createCategory(category: {
       description: category.description || "",
       image: category.image || "",
       cta: category.cta || "Shop Now →",
-      href: category.href || `#${slug}`,
+      href: targetHref,
     })
     .select()
     .single();
@@ -94,15 +114,29 @@ export async function updateCategory(
   const supabase = createBrowserClient();
   if (!supabase) return { error: "Failed to initialize Supabase client" };
 
+  const updatePayload: {
+    title?: string;
+    description?: string;
+    image?: string;
+    cta?: string;
+    href?: string;
+  } = {
+    title: updates.title,
+    description: updates.description,
+    image: updates.image,
+    cta: updates.cta,
+  };
+
+  if (updates.href !== undefined) {
+    updatePayload.href =
+      updates.href && !updates.href.startsWith("#")
+        ? updates.href
+        : `/category/${id}`;
+  }
+
   const { error } = await supabase
     .from("categories")
-    .update({
-      title: updates.title,
-      description: updates.description,
-      image: updates.image,
-      cta: updates.cta,
-      href: updates.href,
-    })
+    .update(updatePayload)
     .eq("id", id);
 
   return { error: error ? error.message : null };

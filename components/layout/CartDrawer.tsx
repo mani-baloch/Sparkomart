@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ArrowLeft } from "lucide-react";
 
 export function CartDrawer() {
   const { isCartOpen, setIsCartOpen, items, updateQuantity, removeFromCart, subtotal, totalItems } = useCart();
@@ -39,18 +39,21 @@ export function CartDrawer() {
           <div className="flex-1 overflow-y-auto p-6 divide-y divide-gray-100">
             {items.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center text-[#F2B52B] mb-4">
-                  <ShoppingBag className="w-8 h-8" />
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-5">
+                  <ShoppingBag className="w-7 h-7 text-gray-800 stroke-[1.8]" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Your cart is empty</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                  Explore our products and add items to your cart!
+                <h3 className="text-xl font-bold text-gray-900 mb-1.5">
+                  Your cart is empty
+                </h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-[240px]">
+                  Looks like you haven&apos;t added anything to your cart yet.
                 </p>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="px-6 py-2.5 bg-[#F2B52B] text-gray-900 font-semibold text-sm rounded-lg hover:bg-[#e0a41d] transition-colors"
+                  className="w-full max-w-[240px] py-3 bg-black hover:bg-neutral-800 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                 >
-                  Start Shopping
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Continue Shopping</span>
                 </button>
               </div>
             ) : (

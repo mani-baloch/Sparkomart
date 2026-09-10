@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -12,8 +12,12 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
+  LogOut,
+  ShieldCheck,
+  Mail,
 } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { useAdminAuth } from "@/context/AdminAuthContext";
 
 interface AdminSidebarProps {
   mobileOpen: boolean;
@@ -22,11 +26,19 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAdminAuth();
   const [supabaseReady, setSupabaseReady] = useState(false);
 
   useEffect(() => {
     setSupabaseReady(isSupabaseConfigured());
   }, []);
+
+  const handleLogout = async () => {
+    setMobileOpen(false);
+    await logout();
+    router.replace("/admin/login");
+  };
 
   const navItems = [
     {
@@ -45,6 +57,12 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
       name: "Categories",
       href: "/admin/categories",
       icon: FolderTree,
+      exact: false,
+    },
+    {
+      name: "Subscribers",
+      href: "/admin/subscribers",
+      icon: Mail,
       exact: false,
     },
   ];
@@ -148,35 +166,59 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
           </Link>
         </nav>
 
-        {/* Supabase Status Footer */}
-        <div className="p-4 m-4 rounded-2xl bg-gray-50 border border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <Database className="w-4 h-4 text-[#16375B]" />
-            <span className="text-xs font-bold text-gray-900">Database Status</span>
-          </div>
+        {/* Admin User Card & Status Footer */}
+        <div className="p-3 m-3 space-y-2.5">
+          {/* User Account Info */}
+          {user && (
+            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-linear-to-br from-[#16375B] to-[#0E1726] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                  {user.email.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-gray-900 truncate">
+                    {user.name || "Administrator"}
+                  </div>
+                  <div className="text-[10px] text-gray-500 truncate">
+                    {user.email}
+                  </div>
+                </div>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                supabaseReady
-                  ? "bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse"
-                  : "bg-amber-500"
-              }`}
-            />
-            <span className="text-xs font-medium text-gray-600">
-              {supabaseReady ? "Supabase Connected" : "Local Mock Fallback"}
-            </span>
-          </div>
-
-          {!supabaseReady && (
-            <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
-              Add your credentials to{" "}
-              <code className="bg-gray-200/70 px-1 py-0.5 rounded text-gray-800">
-                .env.local
-              </code>{" "}
-              to sync with live Supabase.
-            </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Log Out"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           )}
+
+          {/* Supabase Status Footer */}
+          <div className="p-3 rounded-2xl bg-gray-50/80 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-[#16375B]" />
+                <span className="text-[11px] font-bold text-gray-800">
+                  Database
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    supabaseReady
+                      ? "bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse"
+                      : "bg-amber-500"
+                  }`}
+                />
+                <span className="text-[10px] font-semibold text-gray-600">
+                  {supabaseReady ? "Connected" : "Mock"}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
     </>

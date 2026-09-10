@@ -17,7 +17,7 @@ export function SparkMartLogo({
   if (layout === "badge") {
     return (
       <div
-        className={`w-[62px] h-[62px] sm:w-[66px] sm:h-[66px] bg-white rounded-xl sm:rounded-2xl p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col items-center justify-center select-none hover:shadow-md transition-shadow duration-200 ${className}`}
+        className={`w-[62px] h-[62px] sm:w-[66px] sm:h-[66px] bg-white rounded-xl sm:rounded-2xl p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col items-center justify-center select-none ${className}`}
       >
         <svg
           viewBox="0 0 100 100"

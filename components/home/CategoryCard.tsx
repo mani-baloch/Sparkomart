@@ -8,8 +8,16 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ category }: CategoryCardProps) {
+  const categoryHref =
+    category.href && !category.href.startsWith("#")
+      ? category.href
+      : `/category/${category.id}`;
+
   return (
-    <div className="group bg-white rounded-2xl p-4 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+    <Link
+      href={categoryHref}
+      className="group bg-white rounded-2xl p-4 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col h-full cursor-pointer"
+    >
       {/* Category Image with rounded corners */}
       <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-50 mb-4">
         <Image
@@ -32,13 +40,10 @@ export function CategoryCard({ category }: CategoryCardProps) {
           </p>
         </div>
 
-        <Link
-          href={category.href}
-          className="inline-flex items-center text-xs sm:text-sm font-semibold text-[#F2B52B] group-hover:text-[#E0A41D] transition-colors pb-1"
-        >
+        <span className="inline-flex items-center text-xs sm:text-sm font-semibold text-[#F2B52B] group-hover:text-[#E0A41D] transition-colors pb-1">
           {category.cta}
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }

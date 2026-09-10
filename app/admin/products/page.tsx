@@ -26,7 +26,7 @@ import { getCategories } from "@/lib/services/categories";
 import { uploadProductImage } from "@/lib/services/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Product } from "@/data/products";
-import { Category } from "@/data/categories";
+import { categories as defaultCategories, Category } from "@/data/categories";
 
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,6 +44,8 @@ export default function ProductsAdminPage() {
   // Form State
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState("");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryText, setCustomCategoryText] = useState("");
   const [formPrice, setFormPrice] = useState("");
   const [formOldPrice, setFormOldPrice] = useState("");
   const [formRating, setFormRating] = useState("5.0");
@@ -92,7 +94,9 @@ export default function ProductsAdminPage() {
 
     const matchesCategory =
       selectedCategory === "all" ||
-      product.category.toLowerCase() === selectedCategory.toLowerCase();
+      product.category.toLowerCase() === selectedCategory.toLowerCase() ||
+      product.category.toLowerCase().replace(/[^a-z0-9]+/g, "-") ===
+        selectedCategory.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     const matchesStock =
       selectedStock === "all" ||
@@ -104,10 +108,13 @@ export default function ProductsAdminPage() {
 
   // Open Create Modal
   const handleOpenCreate = () => {
+    const allCats = categories.length > 0 ? categories : defaultCategories;
     setModalMode("create");
     setEditingProductId(null);
     setFormName("");
-    setFormCategory(categories[0]?.id || "electronics");
+    setFormCategory(allCats[0]?.id || "electronics");
+    setIsCustomCategory(false);
+    setCustomCategoryText("");
     setFormPrice("");
     setFormOldPrice("");
     setFormRating("5.0");
@@ -128,12 +135,21 @@ export default function ProductsAdminPage() {
     setFormName(product.name);
 
     // match category ID by title or ID
-    const matchedCat = categories.find(
+    const allCats = categories.length > 0 ? categories : defaultCategories;
+    const matchedCat = allCats.find(
       (c) =>
         c.title.toLowerCase() === product.category.toLowerCase() ||
         c.id.toLowerCase() === product.category.toLowerCase()
     );
-    setFormCategory(matchedCat ? matchedCat.id : categories[0]?.id || "electronics");
+    if (matchedCat) {
+      setFormCategory(matchedCat.id);
+      setIsCustomCategory(false);
+      setCustomCategoryText("");
+    } else {
+      setFormCategory("custom");
+      setIsCustomCategory(true);
+      setCustomCategoryText(product.category);
+    }
 
     setFormPrice(product.price.toString());
     setFormOldPrice(product.oldPrice ? product.oldPrice.toString() : "");
@@ -196,15 +212,21 @@ export default function ProductsAdminPage() {
     const oldPriceNum = formOldPrice ? parseFloat(formOldPrice) : null;
     const ratingNum = parseFloat(formRating) || 5.0;
     const reviewsNum = parseInt(formReviews, 10) || 0;
+    const allCats = categories.length > 0 ? categories : defaultCategories;
+    const categoryTitle = isCustomCategory
+      ? customCategoryText.trim()
+      : (allCats.find((c) => c.id === formCategory)?.title || formCategory);
 
-    const matchedCategory = categories.find((c) => c.id === formCategory);
-    const categoryTitle = matchedCategory ? matchedCategory.title : formCategory;
+    if (!categoryTitle) {
+      setFormError("Please select or enter a valid category.");
+      return;
+    }
 
     startTransition(async () => {
       if (modalMode === "create") {
         const newProductData = {
           name: formName.trim(),
-          category_id: formCategory,
+          category_id: isCustomCategory ? customCategoryText.trim().toLowerCase().replace(/\s+/g, "-") : formCategory,
           price: priceNum,
           old_price: oldPriceNum,
           rating: ratingNum,
@@ -215,31 +237,15 @@ export default function ProductsAdminPage() {
           image: formImage || "/images/hero-workspace.jpg",
         };
 
-        if (isSupabaseConfigured()) {
-          const { data, error } = await createProduct(newProductData);
-          if (error) {
-            setFormError(`Database error: ${error}`);
-            return;
-          }
+        const { data: createdItem, error } = await createProduct(newProductData);
+        if (error) {
+          setFormError(`Save error: ${error}`);
+          return;
         }
 
-        // Optimistic UI update
-        const tempId = `prod-${Date.now()}`;
-        const createdItem: Product = {
-          id: tempId,
-          name: formName.trim(),
-          category: categoryTitle,
-          price: priceNum,
-          oldPrice: oldPriceNum || priceNum,
-          rating: ratingNum,
-          reviews: reviewsNum,
-          badge: formBadge || undefined,
-          inStock: formInStock,
-          shipping: formShipping.trim(),
-          image: formImage || "/images/hero-workspace.jpg",
-        };
-
-        setProducts((prev) => [createdItem, ...prev]);
+        if (createdItem) {
+          setProducts((prev) => [createdItem, ...prev]);
+        }
         setFormSuccess("Product created successfully!");
         setTimeout(() => setIsModalOpen(false), 800);
       } else if (modalMode === "edit" && editingProductId) {
@@ -256,12 +262,10 @@ export default function ProductsAdminPage() {
           image: formImage || "/images/hero-workspace.jpg",
         };
 
-        if (isSupabaseConfigured()) {
-          const { error } = await updateProduct(editingProductId, updateData);
-          if (error) {
-            setFormError(`Update error: ${error}`);
-            return;
-          }
+        const { error } = await updateProduct(editingProductId, updateData);
+        if (error) {
+          setFormError(`Update error: ${error}`);
+          return;
         }
 
         // Optimistic UI update
@@ -293,12 +297,10 @@ export default function ProductsAdminPage() {
 
   // Handle Delete Product
   const handleDeleteProduct = async (id: string) => {
-    if (isSupabaseConfigured()) {
-      const { error } = await deleteProduct(id);
-      if (error) {
-        alert(`Failed to delete product: ${error}`);
-        return;
-      }
+    const { error } = await deleteProduct(id);
+    if (error) {
+      alert(`Failed to delete product: ${error}`);
+      return;
     }
 
     setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -359,7 +361,7 @@ export default function ProductsAdminPage() {
             className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-hidden focus:ring-2 focus:ring-[#F26E22]/30"
           >
             <option value="all">All Categories</option>
-            {categories.map((c) => (
+            {(categories.length > 0 ? categories : defaultCategories).map((c) => (
               <option key={c.id} value={c.title}>
                 {c.title}
               </option>
@@ -564,20 +566,49 @@ export default function ProductsAdminPage() {
               {/* Category & Badge */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Category *
+                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                    <span>Category *</span>
+                    {isCustomCategory && (
+                      <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">Custom Category</span>
+                    )}
                   </label>
                   <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#F26E22]/30"
+                    value={isCustomCategory ? "custom" : formCategory}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        setIsCustomCategory(true);
+                      } else {
+                        setIsCustomCategory(false);
+                        setFormCategory(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#F26E22]/30 font-medium"
                   >
-                    {categories.map((cat) => (
+                    {(categories.length > 0 ? categories : defaultCategories).map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.title}
                       </option>
                     ))}
+                    <option value="custom">➕ Add New / Custom Category...</option>
                   </select>
+
+                  {/* Custom Category input if chosen */}
+                  {isCustomCategory && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Watches, Gaming, Pet Supplies"
+                        value={customCategoryText}
+                        onChange={(e) => setCustomCategoryText(e.target.value)}
+                        className="w-full px-3.5 py-2 text-xs bg-amber-50/50 border border-amber-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+                        autoFocus
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Enter the category name for this product.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>

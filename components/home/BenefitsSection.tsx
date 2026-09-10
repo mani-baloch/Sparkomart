@@ -1,5 +1,5 @@
 import React from "react";
-import { Truck, ShieldCheck, Headphones, CreditCard } from "lucide-react";
+import { Truck, Shield, Headphones, CreditCard } from "lucide-react";
 
 const benefits = [
   {
@@ -8,7 +8,7 @@ const benefits = [
     description: "Quick delivery from trusted suppliers across USA",
   },
   {
-    icon: ShieldCheck,
+    icon: Shield,
     title: "Quality Assured",
     description: "All products sourced from reputable sellers",
   },
@@ -26,7 +26,7 @@ const benefits = [
 
 export function BenefitsSection() {
   return (
-    <section id="benefits" className="w-full bg-white py-12 md:py-16">
+    <section id="benefits" className="w-full bg-white py-12 md:py-16 lg:py-20">
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {benefits.map((benefit, index) => {
@@ -34,17 +34,17 @@ export function BenefitsSection() {
             return (
               <div
                 key={index}
-                className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center"
+                className="bg-white rounded-2xl py-10 px-6 sm:py-12 sm:px-6 border border-gray-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-gray-300 transition-all duration-300 flex flex-col items-center text-center"
               >
-                {/* Circular pale yellow icon container */}
-                <div className="w-14 h-14 rounded-full bg-[#FEF8E8] flex items-center justify-center text-[#F2B52B] mb-4 shrink-0">
-                  <Icon className="w-6 h-6 stroke-[2]" />
+                {/* Circular pale warm yellow icon container */}
+                <div className="w-20 h-20 rounded-full bg-[#FEF6E4] flex items-center justify-center text-[#DE9D1A] mb-6 shrink-0">
+                  <Icon className="w-8 h-8 stroke-[1.75]" />
                 </div>
 
-                <h3 className="text-base font-bold text-gray-900 mb-2">
+                <h3 className="text-lg sm:text-[19px] font-bold text-gray-900 mb-3 tracking-tight">
                   {benefit.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-500 leading-relaxed max-w-xs">
+                <p className="text-xs sm:text-sm text-gray-500 font-normal leading-relaxed max-w-[210px]">
                   {benefit.description}
                 </p>
               </div>
@@ -55,3 +55,4 @@ export function BenefitsSection() {
     </section>
   );
 }
+

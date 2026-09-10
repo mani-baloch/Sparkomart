@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { SparkMartLogo } from "@/components/icons/SparkMartLogo";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import {
   Search,
   Heart,
@@ -13,19 +16,101 @@ import {
   ChevronDown,
   Menu,
   X,
+  ArrowRight,
 } from "lucide-react";
 
+const dropdownCategories = [
+  {
+    id: "electronics",
+    title: "Electronics",
+    subtitle: "Explore products",
+    image: "/images/electronics.jpg",
+    href: "/category/electronics",
+  },
+  {
+    id: "clothing-fashion",
+    title: "Clothing & Fashion",
+    subtitle: "Explore products",
+    image: "/images/clothing-store.jpg",
+    href: "/category/clothing-fashion",
+  },
+  {
+    id: "home-kitchen",
+    title: "Home & Kitchen",
+    subtitle: "Explore products",
+    image: "/images/home-kitchen.jpg",
+    href: "/category/home-kitchen",
+  },
+  {
+    id: "sports-outdoors",
+    title: "Sports & Outdoors",
+    subtitle: "Explore products",
+    image: "/images/sports-outdoors.jpg",
+    href: "/category/sports-outdoors",
+  },
+  {
+    id: "books-media",
+    title: "Books & Media",
+    subtitle: "Explore products",
+    image: "/images/books.jpg",
+    href: "/category/books-media",
+  },
+  {
+    id: "health-beauty",
+    title: "Health & Beauty",
+    subtitle: "Explore products",
+    image: "/images/beauty.jpg",
+    href: "/category/health-beauty",
+  },
+];
+
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const { totalItems, setIsCartOpen } = useCart();
   const { wishlistCount } = useWishlist();
+  const { user, isAuthenticated } = useCustomerAuth();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCategoryMouseEnter = () => {
+    if (categoryTimeoutRef.current) {
+      clearTimeout(categoryTimeoutRef.current);
+      categoryTimeoutRef.current = null;
+    }
+    setIsCategoryOpen(true);
+  };
+
+  const handleCategoryMouseLeave = () => {
+    if (categoryTimeoutRef.current) {
+      clearTimeout(categoryTimeoutRef.current);
+    }
+    categoryTimeoutRef.current = setTimeout(() => {
+      setIsCategoryOpen(false);
+    }, 220);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (categoryTimeoutRef.current) {
+        clearTimeout(categoryTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const isWishlistActive = pathname === "/wishlist";
+  const isCartActive = pathname === "/cart";
+  const isUserActive = pathname === "/login" || pathname === "/profile";
+  const isShopActive = pathname === "/shop";
+  const isAboutActive = pathname === "/about";
+  const isContactActive = pathname === "/contact";
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      alert(`Searching for: "${searchQuery}" across all categories`);
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -38,89 +123,131 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-gray-800">
+        <nav className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-gray-800">
           <Link
             href="/"
-            className="text-gray-900 hover:text-[#F2B52B] transition-colors"
+            className="px-4 py-2 rounded-xl text-gray-800 hover:bg-[#F2B52B] hover:text-gray-950 transition-all duration-200"
           >
             Home
           </Link>
           <Link
-            href="#categories"
-            className="text-gray-700 hover:text-[#F2B52B] transition-colors"
+            href="/shop"
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              isShopActive
+                ? "bg-[#F2B52B] text-gray-950 font-bold shadow-xs"
+                : "text-gray-800 hover:bg-[#F2B52B] hover:text-gray-950"
+            }`}
           >
             Shop
           </Link>
 
-          {/* Categories Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setIsCategoryOpen(true)}
-            onMouseLeave={() => setIsCategoryOpen(false)}
-          >
-            <button
-              className="flex items-center gap-1 text-gray-700 hover:text-[#F2B52B] transition-colors py-2"
-              onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+            {/* Categories Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={handleCategoryMouseEnter}
+              onMouseLeave={handleCategoryMouseLeave}
             >
-              <span>Categories</span>
-              <ChevronDown
-                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
-                  isCategoryOpen ? "rotate-180" : ""
+              <button
+                type="button"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  isCategoryOpen
+                    ? "bg-[#F2B52B] text-gray-950 shadow-xs"
+                    : "text-gray-800 hover:bg-[#F2B52B] hover:text-gray-950"
                 }`}
-              />
-            </button>
+                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                aria-expanded={isCategoryOpen}
+              >
+                <span>Categories</span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    isCategoryOpen ? "rotate-180 text-gray-950" : "text-gray-800"
+                  }`}
+                />
+              </button>
 
-            {isCategoryOpen && (
-              <div className="absolute top-full left-0 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in-50 slide-in-from-top-2 duration-150">
-                <Link
-                  href="#categories"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-[#F2B52B] transition-colors"
-                  onClick={() => setIsCategoryOpen(false)}
+              {isCategoryOpen && (
+                <div
+                  className="absolute top-full left-0 pt-2 z-50"
+                  onMouseEnter={handleCategoryMouseEnter}
+                  onMouseLeave={handleCategoryMouseLeave}
                 >
-                  Electronics
-                </Link>
-                <Link
-                  href="#categories"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-[#F2B52B] transition-colors"
-                  onClick={() => setIsCategoryOpen(false)}
-                >
-                  Clothing & Fashion
-                </Link>
-                <Link
-                  href="#categories"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-[#F2B52B] transition-colors"
-                  onClick={() => setIsCategoryOpen(false)}
-                >
-                  Home & Kitchen
-                </Link>
-                <Link
-                  href="#categories"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-[#F2B52B] transition-colors"
-                  onClick={() => setIsCategoryOpen(false)}
-                >
-                  Sports & Outdoors
-                </Link>
-              </div>
-            )}
-          </div>
+                  {/* Invisible Bridge across gap to catch cursor */}
+                  <div className="absolute -top-2 left-0 right-0 h-2" />
+                  <div className="w-[280px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-gray-100 p-2.5 space-y-1 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+                    {dropdownCategories.map((cat) => (
+                      <Link
+                        key={cat.id}
+                        href={cat.href}
+                        onClick={() => {
+                          if (categoryTimeoutRef.current) {
+                            clearTimeout(categoryTimeoutRef.current);
+                          }
+                          setIsCategoryOpen(false);
+                        }}
+                        className="flex items-center justify-between p-2 rounded-2xl hover:bg-gray-50/90 transition-all group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="relative w-11 h-11 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100/90 shrink-0 shadow-xs">
+                            <Image
+                              src={cat.image}
+                              alt={cat.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-200"
+                              sizes="44px"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-bold text-gray-950 leading-tight group-hover:text-[#F26E22] transition-colors">
+                              {cat.title}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {cat.subtitle}
+                            </div>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-800 group-hover:text-black group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                      </Link>
+                    ))}
+
+                    <div className="border-t border-gray-100 mt-2 pt-2 px-1 pb-0.5">
+                      <Link
+                        href="/categories"
+                        onClick={() => {
+                          if (categoryTimeoutRef.current) {
+                            clearTimeout(categoryTimeoutRef.current);
+                          }
+                          setIsCategoryOpen(false);
+                        }}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold text-gray-800 hover:text-black hover:bg-gray-50 transition-colors group cursor-pointer"
+                      >
+                        <span>View All Categories</span>
+                        <ArrowRight className="w-4 h-4 text-gray-800 group-hover:text-black group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
           <Link
-            href="#benefits"
-            className="text-gray-700 hover:text-[#F2B52B] transition-colors"
+            href="/about"
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              isAboutActive
+                ? "bg-[#F2B52B] text-gray-950 font-bold shadow-xs"
+                : "text-gray-800 hover:bg-[#F2B52B] hover:text-gray-950"
+            }`}
           >
             About
           </Link>
           <Link
-            href="#footer"
-            className="text-gray-700 hover:text-[#F2B52B] transition-colors"
+            href="/contact"
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              isContactActive
+                ? "bg-[#F2B52B] text-gray-950 font-bold shadow-xs"
+                : "text-gray-800 hover:bg-[#F2B52B] hover:text-gray-950"
+            }`}
           >
             Contact
-          </Link>
-          <Link
-            href="/admin"
-            className="text-xs font-bold px-2.5 py-1 rounded-lg bg-orange-50 text-[#F26E22] hover:bg-orange-100 transition-colors"
-          >
-            Admin Panel
           </Link>
         </nav>
 
@@ -142,33 +269,42 @@ export function Navbar() {
         </form>
 
         {/* Right: Action Icons */}
-        <div className="flex items-center gap-4 sm:gap-6 text-gray-700">
+        <div className="flex items-center gap-3 sm:gap-5 text-gray-700">
           {/* Wishlist */}
-          <button
-            onClick={() => alert(`Wishlist has ${wishlistCount} item(s)`)}
-            className="relative p-1.5 hover:text-[#F2B52B] transition-colors"
+          <Link
+            href="/wishlist"
+            className={`transition-all duration-200 relative ${
+              isWishlistActive
+                ? "w-9 h-9 rounded-full bg-[#F2B52B] text-gray-900 flex items-center justify-center shadow-xs"
+                : "p-1.5 text-gray-700 hover:text-[#F2B52B]"
+            }`}
             aria-label="Wishlist"
           >
-            <Heart className="w-5 h-5 stroke-[1.8]" />
-            {wishlistCount > 0 && (
+            <Heart className={`${isWishlistActive ? "w-4 h-4 stroke-[2]" : "w-5 h-5 stroke-[1.8]"}`} />
+            {wishlistCount > 0 && !isWishlistActive && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#F2B52B] text-[10px] font-bold text-gray-900 flex items-center justify-center">
                 {wishlistCount}
               </span>
             )}
-          </button>
+          </Link>
 
           {/* User Account */}
-          <button
-            onClick={() => alert("Sign In / Account modal: Demo mode")}
-            className="p-1.5 hover:text-[#F2B52B] transition-colors"
+          <Link
+            href={isAuthenticated ? "/profile" : "/login"}
+            className={`transition-all duration-200 relative ${
+              isUserActive
+                ? "w-9 h-9 rounded-full bg-[#F2B52B] text-gray-900 flex items-center justify-center shadow-xs"
+                : "p-1.5 text-gray-700 hover:text-[#F2B52B]"
+            }`}
             aria-label="Account"
+            title={isAuthenticated ? `Logged in as ${user?.name || user?.email}` : "Sign In"}
           >
-            <User className="w-5 h-5 stroke-[1.8]" />
-          </button>
+            <User className={`${isUserActive ? "w-4 h-4 stroke-[2]" : "w-5 h-5 stroke-[1.8]"}`} />
+          </Link>
 
           {/* Shopping Bag / Cart */}
-          <button
-            onClick={() => setIsCartOpen(true)}
+          <Link
+            href="/cart"
             className="relative p-1.5 hover:text-[#F2B52B] transition-colors"
             aria-label="Shopping Cart"
           >
@@ -178,7 +314,7 @@ export function Navbar() {
                 {totalItems}
               </span>
             )}
-          </button>
+          </Link>
 
           {/* Mobile Menu Button */}
           <button
@@ -218,7 +354,7 @@ export function Navbar() {
               Home
             </Link>
             <Link
-              href="#categories"
+              href="/shop"
               onClick={() => setMobileMenuOpen(false)}
               className="px-2 py-1.5 rounded-lg hover:bg-gray-50 hover:text-[#F2B52B]"
             >
@@ -229,57 +365,69 @@ export function Navbar() {
                 Categories
               </span>
               <Link
-                href="#categories"
+                href="/category/electronics"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
               >
                 Electronics
               </Link>
               <Link
-                href="#categories"
+                href="/category/clothing-fashion"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
               >
                 Clothing & Fashion
               </Link>
               <Link
-                href="#categories"
+                href="/category/home-kitchen"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
               >
                 Home & Kitchen
               </Link>
               <Link
-                href="#categories"
+                href="/category/sports-outdoors"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
               >
                 Sports & Outdoors
               </Link>
+              <Link
+                href="/category/books-media"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
+              >
+                Books & Media
+              </Link>
+              <Link
+                href="/category/health-beauty"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-1 text-sm text-gray-700 hover:text-[#F2B52B]"
+              >
+                Health & Beauty
+              </Link>
             </div>
             <Link
-              href="#benefits"
+              href="/about"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-2 py-1.5 rounded-lg hover:bg-gray-50 hover:text-[#F2B52B]"
+              className={`px-2 py-1.5 rounded-lg transition-colors ${
+                isAboutActive
+                  ? "bg-[#F2B52B] text-gray-950 font-bold"
+                  : "hover:bg-gray-50 hover:text-[#F2B52B]"
+              }`}
             >
               About
             </Link>
             <Link
-              href="#footer"
+              href="/contact"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-2 py-1.5 rounded-lg hover:bg-gray-50 hover:text-[#F2B52B]"
+              className={`px-2 py-1.5 rounded-lg transition-colors ${
+                isContactActive
+                  ? "bg-[#F2B52B] text-gray-950 font-bold"
+                  : "hover:bg-gray-50 hover:text-[#F2B52B]"
+              }`}
             >
               Contact
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-2 py-1.5 rounded-lg font-bold text-[#F26E22] hover:bg-orange-50 flex items-center justify-between"
-            >
-              <span>Admin Panel</span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-orange-100">
-                Dashboard
-              </span>
             </Link>
           </nav>
         </div>

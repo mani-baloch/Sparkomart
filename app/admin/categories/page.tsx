@@ -128,14 +128,17 @@ export default function CategoriesAdminPage() {
 
     startTransition(async () => {
       if (modalMode === "create") {
+        const catSlug = formId.trim();
+        const catHref = `/category/${catSlug}`;
+
         if (isSupabaseConfigured()) {
           const { error } = await createCategory({
-            id: formId.trim(),
+            id: catSlug,
             title: formTitle.trim(),
             description: formDescription.trim(),
             image: formImage.trim() || "/images/home-kitchen.jpg",
             cta: formCta.trim() || "Shop Now →",
-            href: `#${formId.trim()}`,
+            href: catHref,
           });
           if (error) {
             setFormError(`Database error: ${error}`);
@@ -144,25 +147,27 @@ export default function CategoriesAdminPage() {
         }
 
         const newCat: Category = {
-          id: formId.trim(),
+          id: catSlug,
           title: formTitle.trim(),
           description: formDescription.trim(),
           image: formImage.trim() || "/images/home-kitchen.jpg",
           cta: formCta.trim() || "Shop Now →",
-          href: `#${formId.trim()}`,
+          href: catHref,
         };
 
         setCategories((prev) => [...prev, newCat]);
         setFormSuccess("Category created successfully!");
         setTimeout(() => setIsModalOpen(false), 800);
       } else if (modalMode === "edit" && editingCategoryId) {
+        const catHref = `/category/${editingCategoryId}`;
+
         if (isSupabaseConfigured()) {
           const { error } = await updateCategory(editingCategoryId, {
             title: formTitle.trim(),
             description: formDescription.trim(),
             image: formImage.trim(),
             cta: formCta.trim(),
-            href: `#${editingCategoryId}`,
+            href: catHref,
           });
           if (error) {
             setFormError(`Update error: ${error}`);

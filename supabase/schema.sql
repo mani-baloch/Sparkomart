@@ -91,15 +91,44 @@ TO public
 USING (bucket_id = 'product-images')
 WITH CHECK (bucket_id = 'product-images');
 
+-- 8. Create Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    email TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Subscribe Newsletter" ON public.newsletter_subscribers;
+CREATE POLICY "Public Subscribe Newsletter"
+ON public.newsletter_subscribers FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Read Subscribers" ON public.newsletter_subscribers;
+CREATE POLICY "Public Read Subscribers"
+ON public.newsletter_subscribers FOR SELECT
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Public Delete Subscribers" ON public.newsletter_subscribers;
+CREATE POLICY "Public Delete Subscribers"
+ON public.newsletter_subscribers FOR DELETE
+TO public
+USING (true);
+
 -- ==============================================================================
--- 8. Seed Initial Categories Data
+-- 9. Seed Initial Categories Data
 -- ==============================================================================
 INSERT INTO public.categories (id, title, description, image, cta, href)
 VALUES 
-    ('electronics', 'Electronics', 'Latest gadgets, smartphones, laptops, tablets, and electronic accessories for tech enthusiasts.', '/images/electronics.jpg', 'Shop Now →', '#electronics'),
-    ('clothing-fashion', 'Clothing & Fashion', 'Trendy clothing, shoes, accessories, and fashion items for men, women, and children.', '/images/clothing-store.jpg', 'Shop Now →', '#clothing'),
-    ('home-kitchen', 'Home & Kitchen', 'Everything for your home including furniture, kitchen appliances, decor, and housewares.', '/images/home-kitchen.jpg', 'Shop Now →', '#home-kitchen'),
-    ('sports-outdoors', 'Sports & Outdoors', 'Sports equipment, outdoor gear, fitness accessories, and adventure essentials for active lifestyles.', '/images/sports-outdoors.jpg', 'Shop Now →', '#sports-outdoors')
+    ('electronics', 'Electronics', 'Latest gadgets, smartphones, laptops, tablets, and electronic accessories for tech enthusiasts.', '/images/electronics.jpg', 'Shop Now →', '/category/electronics'),
+    ('clothing-fashion', 'Clothing & Fashion', 'Trendy clothing, shoes, accessories, and fashion items for men, women, and children.', '/images/clothing-store.jpg', 'Shop Now →', '/category/clothing-fashion'),
+    ('home-kitchen', 'Home & Kitchen', 'Everything for your home including furniture, kitchen appliances, decor, and housewares.', '/images/home-kitchen.jpg', 'Shop Now →', '/category/home-kitchen'),
+    ('sports-outdoors', 'Sports & Outdoors', 'Sports equipment, outdoor gear, fitness accessories, and adventure essentials for active lifestyles.', '/images/sports-outdoors.jpg', 'Shop Now →', '/category/sports-outdoors'),
+    ('books-media', 'Books & Media', 'Bestselling novels, educational guides, journals, and literature for passionate readers.', '/images/books.jpg', 'Shop Now →', '/category/books-media'),
+    ('health-beauty', 'Health & Beauty', 'Skincare essentials, cosmetics, natural wellness, and personal care routines.', '/images/beauty.jpg', 'Shop Now →', '/category/health-beauty')
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     description = EXCLUDED.description,
