@@ -20,6 +20,13 @@ export default async function Home() {
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 4);
 
+  const nonTopRated = products.filter(
+    (p) => !topRatedProducts.some((top) => top.id === p.id)
+  );
+  const featuredProducts = (
+    nonTopRated.length >= 4 ? nonTopRated : products
+  ).slice(0, 4);
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Fixed Top Header System (Announcement Bar + Blurry Navbar) */}
@@ -48,7 +55,7 @@ export default async function Home() {
           id="featured"
           title="Featured Products"
           subtitle="Discover amazing deals across all categories – from health & beauty to automotive parts."
-          products={products}
+          products={featuredProducts}
           showCtaButton={true}
         />
 

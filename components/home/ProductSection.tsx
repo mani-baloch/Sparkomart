@@ -35,10 +35,10 @@ export function ProductSection({
         {showCtaButton && (
           <div className="text-center mt-10 md:mt-12">
             <Link
-              href="#categories"
+              href="/shop"
               className="inline-flex items-center justify-center px-8 py-3.5 bg-[#F2B52B] hover:bg-[#E0A41D] text-white font-semibold text-sm rounded-lg shadow-sm transition-colors duration-200"
             >
-              Shop All Categories &rarr;
+              View All Products &rarr;
             </Link>
           </div>
         )}
