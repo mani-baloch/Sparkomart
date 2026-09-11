@@ -39,6 +39,11 @@ export function ProductDetailsClient({
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);
   const [addedNotice, setAddedNotice] = useState(false);
+  const [imgSrc, setImgSrc] = useState(product.image || "/images/hero-workspace.jpg");
+
+  React.useEffect(() => {
+    setImgSrc(product.image || "/images/hero-workspace.jpg");
+  }, [product.image]);
 
   const isWishlisted = isInWishlist(product.id);
 
@@ -136,10 +141,12 @@ export function ProductDetailsClient({
           <div className="lg:col-span-6">
             <div className="relative w-full aspect-4/3 sm:aspect-square rounded-3xl overflow-hidden bg-gray-100 border border-gray-100 shadow-md">
               <Image
-                src={product.image}
+                src={imgSrc}
                 alt={product.name}
                 fill
                 priority
+                unoptimized={Boolean(imgSrc.startsWith("http") || imgSrc.startsWith("data:"))}
+                onError={() => setImgSrc("/images/hero-workspace.jpg")}
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />

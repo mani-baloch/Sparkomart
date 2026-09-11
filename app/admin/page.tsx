@@ -14,6 +14,7 @@ import {
   Database,
   ExternalLink,
   MessageSquare,
+  ShoppingBag,
 } from "lucide-react";
 import { getProducts } from "@/lib/services/products";
 import { getCategories } from "@/lib/services/categories";
@@ -22,6 +23,7 @@ import {
   subscribeToContactMessages,
   ContactMessage,
 } from "@/lib/services/contact";
+import { getOrders, subscribeToOrders, Order } from "@/lib/services/orders";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { Product } from "@/data/products";
 import { Category } from "@/data/categories";
@@ -30,6 +32,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [supabaseConnected, setSupabaseConnected] = useState(false);
 
@@ -39,14 +42,16 @@ export default function AdminDashboard() {
     async function loadData() {
       setLoading(true);
       try {
-        const [prodData, catData, msgData] = await Promise.all([
+        const [prodData, catData, msgData, orderData] = await Promise.all([
           getProducts(),
           getCategories(),
           getContactMessages(),
+          getOrders(),
         ]);
         setProducts(prodData);
         setCategories(catData);
         setMessages(msgData);
+        setOrders(orderData);
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
       } finally {
@@ -57,15 +62,24 @@ export default function AdminDashboard() {
     loadData();
 
     // Subscribe to live contact messages updates
-    const unsub = subscribeToContactMessages(async () => {
+    const unsubMsg = subscribeToContactMessages(async () => {
       try {
         const fresh = await getContactMessages();
         setMessages(fresh);
       } catch (e) {}
     });
 
+    // Subscribe to live orders updates
+    const unsubOrd = subscribeToOrders(async () => {
+      try {
+        const fresh = await getOrders();
+        setOrders(fresh);
+      } catch (e) {}
+    });
+
     return () => {
-      unsub();
+      unsubMsg();
+      unsubOrd();
     };
   }, []);
 
@@ -75,6 +89,11 @@ export default function AdminDashboard() {
   const totalCategories = categories.length;
   const totalMessages = messages.length;
   const unreadMessages = messages.filter((m) => m.status === "unread").length;
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+  const pendingOrders = orders.filter(
+    (o) => o.order_status === "processing" || o.order_status === "pending"
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -85,11 +104,23 @@ export default function AdminDashboard() {
             Store Overview
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Manage your SparkoMart catalog, inventory, and categories in real-time.
+            Manage your SparkoMart catalog, inventory, orders, and categories in real-time.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-white bg-[#16375B] hover:bg-[#0F243E] rounded-xl shadow-xs transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4 text-[#F2B52B]" />
+            <span>Orders ({totalOrders})</span>
+            {pendingOrders > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                {pendingOrders} active
+              </span>
+            )}
+          </Link>
           <Link
             href="/admin/messages"
             className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl shadow-xs transition-colors"
@@ -111,9 +142,9 @@ export default function AdminDashboard() {
           </Link>
           <Link
             href="/admin/products"
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-white bg-[#16375B] hover:bg-[#0F243E] rounded-xl shadow-xs transition-colors"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl shadow-xs transition-colors"
           >
-            <Package className="w-4 h-4 text-[#F2B52B]" />
+            <Package className="w-4 h-4 text-[#F26E22]" />
             <span>All Products ({totalProducts})</span>
           </Link>
         </div>
@@ -146,127 +177,130 @@ export default function AdminDashboard() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: Total Products */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              Total Products
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#F26E22] flex items-center justify-center">
-              <Package className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-gray-900">
-              {loading ? "..." : totalProducts}
-            </span>
-            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> Active
-            </span>
-          </div>
-          <p className="text-[11px] text-gray-500 mt-1.5">
-            Across {totalCategories} categories
-          </p>
-        </div>
-
-        {/* Card 2: In Stock */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              In Stock
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-gray-900">
-              {loading ? "..." : inStockCount}
-            </span>
-            <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
-              Available
-            </span>
-          </div>
-          <p className="text-[11px] text-gray-500 mt-1.5">Ready for orders</p>
-        </div>
-
-        {/* Card 3: Out of Stock */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              Out of Stock
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <AlertTriangle className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-gray-900">
-              {loading ? "..." : outOfStockCount}
-            </span>
-            {outOfStockCount > 0 && (
-              <span className="text-xs text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full font-medium">
-                Restock
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-gray-500 mt-1.5">
-            {outOfStockCount === 0 ? "All in stock!" : "Needs inventory update"}
-          </p>
-        </div>
-
-        {/* Card 4: Categories */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              Categories
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#16375B] flex items-center justify-center">
-              <FolderTree className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-gray-900">
-              {loading ? "..." : totalCategories}
-            </span>
-            <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
-              Sections
-            </span>
-          </div>
-          <p className="text-[11px] text-gray-500 mt-1.5">Organized catalog</p>
-        </div>
-
-        {/* Card 5: Inquiries / Contact Messages */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        {/* Card 1: Total Orders */}
         <Link
-          href="/admin/messages"
-          className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs hover:shadow-md hover:border-orange-200 transition-all block group cursor-pointer"
+          href="/admin/orders"
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md hover:border-blue-200 transition-all block group cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#F26E22]">
-              Inquiries
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#16375B]">
+              Orders
             </span>
-            <div className="w-9 h-9 rounded-xl bg-orange-50 text-[#F26E22] flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-              <MessageSquare className="w-4.5 h-4.5" />
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#16375B] flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+              <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-gray-900">
-              {loading ? "..." : totalMessages}
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              {loading ? "..." : totalOrders}
             </span>
-            {unreadMessages > 0 ? (
-              <span className="text-xs text-[#F26E22] bg-orange-100 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                {unreadMessages} New
-              </span>
-            ) : (
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
-                Live
+            {pendingOrders > 0 && (
+              <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded-full font-bold">
+                {pendingOrders} active
               </span>
             )}
           </div>
-          <p className="text-[11px] text-gray-500 mt-1.5">
-            Contact form submissions
-          </p>
+          <p className="text-[10px] text-gray-400 mt-1">Customer orders</p>
+        </Link>
+
+        {/* Card 2: Total Revenue */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+              Revenue
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              ${loading ? "..." : totalRevenue.toFixed(0)}
+            </span>
+            <span className="text-[10px] text-emerald-600 font-bold">USD</span>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Store sales</p>
+        </div>
+
+        {/* Card 3: Total Products */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              Products
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#F26E22] flex items-center justify-center">
+              <Package className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              {loading ? "..." : totalProducts}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">{totalCategories} categories</p>
+        </div>
+
+        {/* Card 4: In Stock */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              In Stock
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              {loading ? "..." : inStockCount}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Ready to ship</p>
+        </div>
+
+        {/* Card 5: Categories */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              Categories
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#16375B] flex items-center justify-center">
+              <FolderTree className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              {loading ? "..." : totalCategories}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Store sections</p>
+        </div>
+
+        {/* Card 6: Inquiries / Messages */}
+        <Link
+          href="/admin/messages"
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-md hover:border-orange-200 transition-all block group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#F26E22]">
+              Inquiries
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#F26E22] flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-black text-gray-900">
+              {loading ? "..." : totalMessages}
+            </span>
+            {unreadMessages > 0 && (
+              <span className="text-[10px] text-[#F26E22] bg-orange-100 px-1.5 py-0.2 rounded-full font-bold animate-pulse">
+                {unreadMessages} new
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">Customer inquiries</p>
         </Link>
       </div>
 
@@ -359,6 +393,26 @@ export default function AdminDashboard() {
             <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
             <div className="space-y-2.5">
               <Link
+                href="/admin/orders"
+                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 text-gray-800 font-semibold text-sm transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#16375B] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <span>Customer Orders</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {pendingOrders > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+                      {pendingOrders} active
+                    </span>
+                  )}
+                  <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-[#16375B] transition-colors" />
+                </div>
+              </Link>
+
+              <Link
                 href="/admin/products?action=new"
                 className="w-full flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-orange-200 hover:bg-orange-50/50 text-gray-800 font-semibold text-sm transition-all group"
               >
@@ -418,6 +472,60 @@ export default function AdminDashboard() {
                 <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-gray-900 transition-colors" />
               </Link>
             </div>
+          </div>
+
+          {/* Recent Orders Widget */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[#16375B]" />
+                <span>Recent Orders</span>
+              </h3>
+              <Link
+                href="/admin/orders"
+                className="text-xs font-bold text-[#F26E22] hover:underline"
+              >
+                View All
+              </Link>
+            </div>
+            {orders.length === 0 ? (
+              <p className="text-xs text-gray-400 py-3 text-center">No orders placed yet.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {orders.slice(0, 3).map((o) => (
+                  <Link
+                    key={o.id}
+                    href="/admin/orders"
+                    className="block p-3 rounded-xl bg-gray-50 hover:bg-blue-50/40 transition-colors border border-gray-100/80"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-bold text-xs text-gray-950">
+                        {o.id}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                          o.order_status === "delivered"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : o.order_status === "shipped"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {o.order_status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-[11px]">
+                      <span className="text-gray-600 font-medium truncate max-w-[140px]">
+                        {o.customer_name}
+                      </span>
+                      <span className="font-black text-gray-900">
+                        ${o.total.toFixed(2)}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Recent Inquiries Widget */}

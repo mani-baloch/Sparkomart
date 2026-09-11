@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Mail,
   MessageSquare,
+  ShoppingBag,
 } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { useAdminAuth } from "@/context/AdminAuthContext";
@@ -23,6 +24,7 @@ import {
   getUnreadMessagesCount,
   subscribeToContactMessages,
 } from "@/lib/services/contact";
+import { getOrders, subscribeToOrders } from "@/lib/services/orders";
 
 interface AdminSidebarProps {
   mobileOpen: boolean;
@@ -35,17 +37,35 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
   const { user, logout } = useAdminAuth();
   const [supabaseReady, setSupabaseReady] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [activeOrders, setActiveOrders] = useState(0);
 
   useEffect(() => {
     setSupabaseReady(isSupabaseConfigured());
     setUnreadMessages(getUnreadMessagesCount());
 
-    const unsub = subscribeToContactMessages(() => {
+    const updateOrdersCount = async () => {
+      try {
+        const orderList = await getOrders();
+        const pendingCount = orderList.filter(
+          (o) => o.order_status === "processing" || o.order_status === "pending"
+        ).length;
+        setActiveOrders(pendingCount);
+      } catch (e) {}
+    };
+
+    updateOrdersCount();
+
+    const unsubMsg = subscribeToContactMessages(() => {
       setUnreadMessages(getUnreadMessagesCount());
     });
 
+    const unsubOrd = subscribeToOrders(() => {
+      updateOrdersCount();
+    });
+
     return () => {
-      unsub();
+      unsubMsg();
+      unsubOrd();
     };
   }, []);
 
@@ -61,6 +81,13 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
       href: "/admin",
       icon: LayoutDashboard,
       exact: true,
+    },
+    {
+      name: "Orders",
+      href: "/admin/orders",
+      icon: ShoppingBag,
+      exact: false,
+      badge: activeOrders,
     },
     {
       name: "Products",

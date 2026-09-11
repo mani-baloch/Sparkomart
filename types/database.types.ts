@@ -140,6 +140,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      orders: {
+        Row: {
+          id: string;
+          tracking_number: string;
+          customer_name: string;
+          customer_email: string;
+          customer_phone: string;
+          shipping_address: Json;
+          items: Json;
+          subtotal: number;
+          shipping_fee: number;
+          total: number;
+          payment_method: string;
+          payment_status: string;
+          order_status: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          tracking_number: string;
+          customer_name: string;
+          customer_email: string;
+          customer_phone: string;
+          shipping_address: Json;
+          items: Json;
+          subtotal: number;
+          shipping_fee?: number;
+          total: number;
+          payment_method?: string;
+          payment_status?: string;
+          order_status?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tracking_number?: string;
+          customer_name?: string;
+          customer_email?: string;
+          customer_phone?: string;
+          shipping_address?: Json;
+          items?: Json;
+          subtotal?: number;
+          shipping_fee?: number;
+          total?: number;
+          payment_method?: string;
+          payment_status?: string;
+          order_status?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -159,3 +213,4 @@ export type Database = {
 export type DbCategory = Database["public"]["Tables"]["categories"]["Row"];
 export type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 export type DbContactMessage = Database["public"]["Tables"]["contact_messages"]["Row"];
+export type DbOrder = Database["public"]["Tables"]["orders"]["Row"];

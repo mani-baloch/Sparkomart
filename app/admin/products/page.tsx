@@ -164,29 +164,27 @@ export default function ProductsAdminPage() {
     setIsModalOpen(true);
   };
 
-  // Handle Image File Upload to Supabase
+  // Handle Image File Upload to Supabase with instant preview & fallback
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!isSupabaseConfigured()) {
-      // In local demo mode, create an object URL preview
-      const previewUrl = URL.createObjectURL(file);
-      setFormImage(previewUrl);
-      return;
-    }
-
+    // Instant preview so the user sees their laptop photo right away
+    const localPreviewUrl = URL.createObjectURL(file);
+    setFormImage(localPreviewUrl);
     setUploadingImage(true);
     setFormError("");
+
     try {
       const { url, error } = await uploadProductImage(file);
       if (error) {
-        setFormError(`Image upload failed: ${error}`);
-      } else if (url) {
+        console.warn("Upload notice:", error);
+      }
+      if (url) {
         setFormImage(url);
       }
     } catch (err: any) {
-      setFormError(`Upload error: ${err.message}`);
+      console.warn("Upload exception:", err);
     } finally {
       setUploadingImage(false);
     }
@@ -417,13 +415,14 @@ export default function ProductsAdminPage() {
                     {/* Thumbnail & Title */}
                     <td className="py-3.5 px-4 sm:px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 relative overflow-hidden shrink-0 border border-gray-200/60">
-                          <Image
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 relative overflow-hidden shrink-0 border border-gray-200/60 flex items-center justify-center">
+                          <img
                             src={product.image || "/images/hero-workspace.jpg"}
                             alt={product.name}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/hero-workspace.jpg";
+                            }}
                           />
                         </div>
                         <div className="min-w-0 max-w-xs">
@@ -732,12 +731,13 @@ export default function ProductsAdminPage() {
                   {/* Preview Box */}
                   <div className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 relative overflow-hidden shrink-0 flex items-center justify-center">
                     {formImage ? (
-                      <Image
+                      <img
                         src={formImage}
                         alt="Product preview"
-                        fill
-                        className="object-cover"
-                        sizes="80px"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/images/hero-workspace.jpg";
+                        }}
                       />
                     ) : (
                       <Package className="w-6 h-6 text-gray-400" />
