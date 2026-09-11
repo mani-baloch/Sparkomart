@@ -12,8 +12,10 @@ import {
   Clock,
   Headphones,
   CheckCircle2,
+  AlertCircle,
   MessageSquare,
 } from "lucide-react";
+import { submitContactMessage } from "@/lib/services/contact";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -24,21 +26,39 @@ export default function ContactPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName.trim() || !formData.email.trim() || !formData.message.trim()) {
+      setErrorMessage("Please fill in all required fields.");
       return;
     }
 
     setIsSubmitting(true);
-    // Simulate sending message
-    setTimeout(() => {
+    setErrorMessage(null);
+
+    try {
+      const res = await submitContactMessage({
+        fullName: formData.fullName,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+      });
+
+      if (res.success) {
+        setSubmitted(true);
+        setFormData({ fullName: "", email: "", subject: "", message: "" });
+        setTimeout(() => setSubmitted(false), 8000);
+      } else {
+        setErrorMessage(res.error || "Failed to send message. Please try again.");
+      }
+    } catch (err) {
+      console.error("Contact submit error:", err);
+      setErrorMessage("Something went wrong while sending your message. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
-      setFormData({ fullName: "", email: "", subject: "", message: "" });
-      setTimeout(() => setSubmitted(false), 6000);
-    }, 600);
+    }
   };
 
   const scrollToForm = () => {
@@ -199,6 +219,16 @@ export default function ContactPage() {
                       Thank you for contacting us. We will get back to you within
                       24 hours.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 animate-in fade-in duration-200">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <div>
+                    <p className="font-bold">Message could not be sent</p>
+                    <p className="text-xs text-rose-700 mt-0.5">{errorMessage}</p>
                   </div>
                 </div>
               )}

@@ -110,6 +110,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_messages: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          subject: string | null;
+          message: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          subject?: string | null;
+          message: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string;
+          subject?: string | null;
+          message?: string;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -128,3 +158,4 @@ export type Database = {
 
 export type DbCategory = Database["public"]["Tables"]["categories"]["Row"];
 export type DbProduct = Database["public"]["Tables"]["products"]["Row"];
+export type DbContactMessage = Database["public"]["Tables"]["contact_messages"]["Row"];

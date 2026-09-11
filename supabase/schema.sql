@@ -118,8 +118,49 @@ ON public.newsletter_subscribers FOR DELETE
 TO public
 USING (true);
 
+-- 9. Create Contact Messages Table
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    subject TEXT DEFAULT '',
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'unread',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON public.contact_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON public.contact_messages(status);
+
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Insert Contact Messages" ON public.contact_messages;
+CREATE POLICY "Public Insert Contact Messages"
+ON public.contact_messages FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Read Contact Messages" ON public.contact_messages;
+CREATE POLICY "Public Read Contact Messages"
+ON public.contact_messages FOR SELECT
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Public Update Contact Messages" ON public.contact_messages;
+CREATE POLICY "Public Update Contact Messages"
+ON public.contact_messages FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Delete Contact Messages" ON public.contact_messages;
+CREATE POLICY "Public Delete Contact Messages"
+ON public.contact_messages FOR DELETE
+TO public
+USING (true);
+
 -- ==============================================================================
--- 9. Seed Initial Categories Data
+-- 10. Seed Initial Categories Data
 -- ==============================================================================
 INSERT INTO public.categories (id, title, description, image, cta, href)
 VALUES 
