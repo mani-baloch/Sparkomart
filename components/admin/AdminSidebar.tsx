@@ -15,9 +15,14 @@ import {
   LogOut,
   ShieldCheck,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { useAdminAuth } from "@/context/AdminAuthContext";
+import {
+  getUnreadMessagesCount,
+  subscribeToContactMessages,
+} from "@/lib/services/contact";
 
 interface AdminSidebarProps {
   mobileOpen: boolean;
@@ -29,9 +34,19 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
   const router = useRouter();
   const { user, logout } = useAdminAuth();
   const [supabaseReady, setSupabaseReady] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     setSupabaseReady(isSupabaseConfigured());
+    setUnreadMessages(getUnreadMessagesCount());
+
+    const unsub = subscribeToContactMessages(() => {
+      setUnreadMessages(getUnreadMessagesCount());
+    });
+
+    return () => {
+      unsub();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -58,6 +73,13 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
       href: "/admin/categories",
       icon: FolderTree,
       exact: false,
+    },
+    {
+      name: "Messages",
+      href: "/admin/messages",
+      icon: MessageSquare,
+      exact: false,
+      badge: unreadMessages,
     },
     {
       name: "Subscribers",
@@ -144,7 +166,20 @@ export function AdminSidebar({ mobileOpen, setMobileOpen }: AdminSidebarProps) {
                   />
                   <span>{item.name}</span>
                 </div>
-                {active && <ChevronRight className="w-4 h-4 text-white/70" />}
+                <div className="flex items-center gap-1.5">
+                  {Boolean(item.badge && item.badge > 0) && (
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        active
+                          ? "bg-orange-500 text-white"
+                          : "bg-orange-100 text-[#F26E22]"
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                  {active && <ChevronRight className="w-4 h-4 text-white/70" />}
+                </div>
               </Link>
             );
           })}
