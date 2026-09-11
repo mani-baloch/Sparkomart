@@ -16,6 +16,11 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
+  const [imgSrc, setImgSrc] = React.useState(product.image || "/images/hero-workspace.jpg");
+
+  React.useEffect(() => {
+    setImgSrc(product.image || "/images/hero-workspace.jpg");
+  }, [product.image]);
 
   return (
     <div className="group bg-white rounded-2xl p-3 sm:p-3.5 border border-gray-100/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full relative">
@@ -26,9 +31,11 @@ export function ProductCard({ product }: ProductCardProps) {
           className="block w-full h-full relative"
         >
           <Image
-            src={product.image}
+            src={imgSrc}
             alt={product.name}
             fill
+            unoptimized={Boolean(imgSrc.startsWith("http") || imgSrc.startsWith("data:"))}
+            onError={() => setImgSrc("/images/hero-workspace.jpg")}
             className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />

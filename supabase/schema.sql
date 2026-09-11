@@ -159,8 +159,59 @@ ON public.contact_messages FOR DELETE
 TO public
 USING (true);
 
+-- 10. Create Orders Table
+CREATE TABLE IF NOT EXISTS public.orders (
+    id TEXT PRIMARY KEY,
+    tracking_number TEXT UNIQUE NOT NULL,
+    customer_name TEXT NOT NULL,
+    customer_email TEXT NOT NULL,
+    customer_phone TEXT NOT NULL,
+    shipping_address JSONB NOT NULL DEFAULT '{}'::jsonb,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    subtotal NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    shipping_fee NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    total NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    payment_method TEXT NOT NULL DEFAULT 'cod',
+    payment_status TEXT NOT NULL DEFAULT 'pending',
+    order_status TEXT NOT NULL DEFAULT 'processing',
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON public.orders(customer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_order_status ON public.orders(order_status);
+CREATE INDEX IF NOT EXISTS idx_orders_tracking_number ON public.orders(tracking_number);
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Insert Orders" ON public.orders;
+CREATE POLICY "Public Insert Orders"
+ON public.orders FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Read Orders" ON public.orders;
+CREATE POLICY "Public Read Orders"
+ON public.orders FOR SELECT
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Public Update Orders" ON public.orders;
+CREATE POLICY "Public Update Orders"
+ON public.orders FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Delete Orders" ON public.orders;
+CREATE POLICY "Public Delete Orders"
+ON public.orders FOR DELETE
+TO public
+USING (true);
+
 -- ==============================================================================
--- 10. Seed Initial Categories Data
+-- 11. Seed Initial Categories Data
 -- ==============================================================================
 INSERT INTO public.categories (id, title, description, image, cta, href)
 VALUES 

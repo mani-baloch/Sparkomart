@@ -23,6 +23,7 @@ import {
   Phone,
   HelpCircle,
 } from "lucide-react";
+import { getOrderByIdOrTracking, subscribeToOrders } from "@/lib/services/orders";
 
 interface OrderTrackingData {
   orderId: string;
@@ -250,13 +251,25 @@ function TrackOrderContent() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  const [activeQuery, setActiveQuery] = useState(initialQuery || "SPK-94821");
+
   useEffect(() => {
     if (initialQuery) {
       handleTrack(initialQuery);
     }
   }, [initialQuery]);
 
-  const handleTrack = (queryId?: string) => {
+  // Live updates listener: if admin updates order status, refresh tracking view
+  useEffect(() => {
+    const unsub = subscribeToOrders(() => {
+      if (activeQuery) {
+        handleTrack(activeQuery);
+      }
+    });
+    return unsub;
+  }, [activeQuery]);
+
+  const handleTrack = async (queryId?: string) => {
     const idToSearch = (queryId || orderIdInput).trim().toUpperCase();
     if (!idToSearch) {
       setError("Please enter a valid Order ID or Tracking Number.");
@@ -264,82 +277,103 @@ function TrackOrderContent() {
     }
 
     setError("");
+    setActiveQuery(idToSearch);
 
-    // Check sample orders
+    // 1. Check Real Orders from Database & Local Storage
+    try {
+      const realOrder = await getOrderByIdOrTracking(idToSearch);
+      if (realOrder) {
+        const isPlaced = true;
+        const isProcessing =
+          realOrder.order_status === "processing" ||
+          realOrder.order_status === "shipped" ||
+          realOrder.order_status === "delivered";
+        const isShipped =
+          realOrder.order_status === "shipped" || realOrder.order_status === "delivered";
+        const isDelivered = realOrder.order_status === "delivered";
+
+        const timeline = [
+          {
+            title: "Order Placed",
+            description: `Order received and confirmed. Payment: ${
+              realOrder.payment_method === "cod" ? "Cash on Delivery" : "Paid via Card"
+            }.`,
+            date: new Date(realOrder.created_at).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            completed: isPlaced,
+            current: realOrder.order_status === "pending",
+          },
+          {
+            title: "Processing & Quality Check",
+            description: "Items inspected, packaged securely, and labeled.",
+            date: isProcessing ? "In Progress / Ready" : "Pending",
+            completed: isProcessing,
+            current: realOrder.order_status === "processing",
+          },
+          {
+            title: "Shipped & In Transit",
+            description: `Handed over to ${realOrder.carrier || "FedEx Express"} for delivery.`,
+            date: isShipped ? "In Transit" : "Scheduled",
+            completed: isShipped,
+            current: realOrder.order_status === "shipped",
+          },
+          {
+            title: "Delivered",
+            description: "Package safely arrived at recipient address.",
+            date: isDelivered ? "Delivered" : "Expected in 2-3 days",
+            completed: isDelivered,
+            current: realOrder.order_status === "delivered",
+          },
+        ];
+
+        setActiveOrder({
+          orderId: realOrder.id,
+          trackingNumber: realOrder.tracking_number,
+          carrier: realOrder.carrier || "FedEx Express",
+          orderDate: new Date(realOrder.created_at).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+          estimatedDelivery:
+            realOrder.estimated_delivery || "Expected in 2-3 business days",
+          status: (realOrder.order_status as any) || "processing",
+          statusText:
+            realOrder.order_status === "delivered"
+              ? "Delivered Successfully"
+              : realOrder.order_status === "shipped"
+              ? "In Transit"
+              : "Processing & On Schedule",
+          recipient: {
+            name: realOrder.shipping_address?.fullName || realOrder.customer_name,
+            address: realOrder.shipping_address?.street || "Shipping Address",
+            city: realOrder.shipping_address?.city || "Austin",
+            state: realOrder.shipping_address?.state || "TX",
+            zip: realOrder.shipping_address?.zip || "78731",
+          },
+          items: realOrder.items.map((i) => ({
+            name: i.name,
+            image: i.image || "/images/electronics.jpg",
+            price: i.price,
+            quantity: i.quantity,
+            category: i.category || "General",
+          })),
+          timeline: timeline,
+        });
+        return;
+      }
+    } catch (e) {
+      console.error("Order lookup error:", e);
+    }
+
+    // 2. Check sample orders
     if (SAMPLE_ORDERS[idToSearch]) {
       setActiveOrder(SAMPLE_ORDERS[idToSearch]);
       return;
-    }
-
-    // Check localStorage recent orders if user placed one
-    try {
-      const stored = localStorage.getItem("sparkomart_orders");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const match = parsed.find(
-          (o: any) =>
-            o.id?.toUpperCase() === idToSearch ||
-            o.orderId?.toUpperCase() === idToSearch ||
-            o.trackingNumber?.toUpperCase() === idToSearch
-        );
-        if (match) {
-          setActiveOrder({
-            orderId: match.id || match.orderId || idToSearch,
-            trackingNumber: match.trackingNumber || `FX-${Math.floor(100000000000 + Math.random() * 900000000000)}`,
-            carrier: match.carrier || "FedEx Express",
-            orderDate: match.date || "Recent Order",
-            estimatedDelivery: match.estimatedDelivery || "Expected in 2-3 business days",
-            status: match.status || "processing",
-            statusText: match.status === "delivered" ? "Delivered" : "Processing & On Schedule",
-            recipient: match.recipient || {
-              name: "Valued Customer",
-              address: "5900 Balcones Dr",
-              city: "Austin",
-              state: "TX",
-              zip: "78731",
-            },
-            items: match.items || [
-              {
-                name: "SparkoMart Store Item",
-                image: "/images/electronics.jpg",
-                price: match.total || 59.99,
-                quantity: 1,
-                category: "Store Order",
-              },
-            ],
-            timeline: [
-              {
-                title: "Order Placed",
-                description: "Order received and confirmed.",
-                date: "Confirmed",
-                completed: true,
-              },
-              {
-                title: "Processing",
-                description: "Order undergoing packaging.",
-                date: "In progress",
-                completed: true,
-                current: true,
-              },
-              {
-                title: "Shipped",
-                description: "Carrier pickup scheduled.",
-                date: "Upcoming",
-                completed: false,
-              },
-              {
-                title: "Delivered",
-                description: "Arrival at your door.",
-                date: "Upcoming",
-                completed: false,
-              },
-            ],
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      console.error(e);
     }
 
     // If custom order ID was entered, dynamically generate a realistic tracked order

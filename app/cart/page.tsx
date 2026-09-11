@@ -183,15 +183,13 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() =>
-                    alert("Demo Checkout: In production this opens secure payment.")
-                  }
+                <Link
+                  href="/checkout"
                   className="w-full py-4 bg-[#F2B52B] hover:bg-[#e0a41d] active:scale-[0.99] text-gray-900 font-extrabold text-sm rounded-2xl transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
 
                 <Link
                   href="/"
